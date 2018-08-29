@@ -1,0 +1,60 @@
+/*@import "../base/reset.less";
+@import "../base/colors.less";
+@import "../base/spacing.less";
+@import "../base/typography.less";
+
+@import "../com/spinner.less";*/
+
+* {
+  box-sizing: border-box;
+  font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+}
+
+body {
+  font-size: 14px;
+}
+
+main {
+  padding: 1rem;
+}
+
+.output .entry {
+  margin-bottom: 1rem;
+}
+
+.output .entry .entry-header {
+  line-height: 1;
+  font-size: 16px;
+}
+
+.output .entry .entry-content {
+  white-space: pre;
+}
+
+.output .error {
+  white-space: normal;
+}
+
+.output .error-stack {
+  padding: 1rem;
+  background: #fafafa;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.prompt {
+  display: flex;
+  line-height: 1;
+  font-size: 16px;
+}
+
+.prompt input {
+  position: relative;
+  top: -2px;
+  flex: 1;
+  line-height: 1;
+  font-size: 16px;
+  padding: 0 0 0 10px;
+  outline: 0;
+  border: 0;
+}
