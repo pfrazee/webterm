@@ -117,7 +117,7 @@ function shortenHash (str = '') {
 function setFocus () {
   document.querySelector('.prompt input').focus()
 }
-var j
+
 function onKeyDown (e) {
   var prompt = document.querySelector('.prompt input')
 
