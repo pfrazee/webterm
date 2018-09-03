@@ -21,11 +21,14 @@ const gt = () => {
 // start
 // =
 
+document.addEventListener('keydown', setFocus, {capture: true})
 document.addEventListener('keydown', onKeyDown, {capture: true})
+window.addEventListener('focus', setFocus)
 readCWD()
 updatePrompt()
 importEnvironment()
 appendOutput(html`<div><strong>Welcome to webterm.</strong> Type <code>help</code> if you get lost.</div>`, cwd.pathname)
+setFocus()
 
 // output
 // =
@@ -38,9 +41,10 @@ function appendOutput (output, thenCWD, cmd) {
   } else if (typeof output !== 'string' && !(output instanceof Element)) {
     output = JSON.stringify(output).replace(/^"|"$/g, '')
   }
+  thenCWD = thenCWD || cwd
   document.querySelector('.output').appendChild(html`
     <div class="entry">
-      <div class="entry-header">//${thenCWD.host}${thenCWD.pathname}${gt()} ${cmd || ''}</div>
+      <div class="entry-header">//${shortenHash(thenCWD.host)}${thenCWD.pathname}${gt()} ${cmd || ''}</div>
       <div class="entry-content">${output}</div>
     </div>
   `)
@@ -56,19 +60,33 @@ function appendError (msg, err, thenCWD, cmd) {
   `, thenCWD, cmd)
 }
 
+function clearHistory () {
+  document.querySelector('.output').innerHTML = ''
+}
+
 // prompt
 //
 
 function updatePrompt () {
   morph(document.querySelector('.prompt'), html`
     <div class="prompt">
-      //${cwd.host}${cwd.pathname}${gt()} <input onkeyup=${onPromptKeyUp} />
+      //${shortenHash(cwd.host)}${cwd.pathname}${gt()} <input onkeyup=${onPromptKeyUp} />
     </div>
   `)
 }
 
-function onKeyDown (e) {
+function shortenHash (str = '') {
+  return str.replace(/[0-9a-f]{64}/ig, v => `${v.slice(0, 6)}..${v.slice(-2)}`)
+}
+
+function setFocus () {
   document.querySelector('.prompt input').focus()
+}
+
+function onKeyDown (e) {
+  if (e.code === 'KeyL' && e.ctrlKey) {
+    clearHistory()
+  }
 }
 
 function onPromptKeyUp (e) {
@@ -78,27 +96,31 @@ function onPromptKeyUp (e) {
 }
 
 function evalPrompt () {
-  evalPromptInternal(appendOutput, appendError, env, parseCommand, updatePrompt)  
-}
-
-// use the func constructor to relax 'use strict'
-// that way we can use `with`
-var evalPromptInternal = new AsyncFunction('appendOutput', 'appendError', 'env', 'parseCommand', 'updatePrompt', `
   var prompt = document.querySelector('.prompt input')
   if (!prompt.value.trim()) {
     return
   }
+  evalCommand(prompt.value)
+  prompt.value = ''
+}
+
+function evalCommand (command) {
+  evalCommandInternal(command, appendOutput, appendError, env, parseCommand, updatePrompt)  
+}
+
+// use the func constructor to relax 'use strict'
+// that way we can use `with`
+var evalCommandInternal = new AsyncFunction('command', 'appendOutput', 'appendError', 'env', 'parseCommand', 'updatePrompt', `
   try {
     var res
-    var oldCWD = Object.assign({}, env.term.getCWD())
+    var oldCWD = Object.assign({}, env.getCWD())
     with (env) {
-      res = await eval(parseCommand(prompt.value))
+      res = await eval(parseCommand(command))
     }
-    appendOutput(res, oldCWD, prompt.value)
+    appendOutput(res, oldCWD, command)
   } catch (err) {
-    appendError('Command error', err, oldCWD, prompt.value)
+    appendError('Command error', err, oldCWD, command)
   }
-  prompt.value = ''
   updatePrompt()
 `)
 
@@ -122,10 +144,13 @@ function parseCommand (str) {
 // =
 
 async function importEnvironment () {
+  document.head.append(html`<link rel="stylesheet" href="/dev/theme-default.css" />`)
   try {
     var module = await importModule('/dev/env-default.js')
     env = Object.assign({}, module)
-    Object.assign(env, builtins)
+    for (let k in builtins) {
+      Object.defineProperty(env, k, {value: builtins[k], enumerable: false})
+    }
     window.env = env
     console.log('Environment', env)
   } catch (err) {
@@ -137,17 +162,21 @@ async function importEnvironment () {
 // current working location
 // =
 
-function setCWD (location) {
+async function setCWD (location) {
+  var locationParsed
   try {
-    if (location.startsWith('//')) {
-      location = `dat://${location}`
-    } else if (location.startsWith('/')) {
-      location = `dat://${cwd.host}${location}`
-    }
-    let locationParsed = new URL(location)
+    locationParsed = new URL(location)
     location = `${locationParsed.host}${locationParsed.pathname}`
   } catch (err) {
     location = `${cwd.host}${joinPath(cwd.pathname, location)}`
+  }
+  locationParsed = new URL('dat://' + location)
+
+  // make sure the destination exists
+  let archive = new DatArchive(locationParsed.host)
+  let st = await archive.stat(locationParsed.pathname)
+  if (!st.isDirectory()) {
+    throw new Error('Not a directory')
   }
 
   window.history.pushState(null, {}, '#' + location)
@@ -176,10 +205,9 @@ function parseURL (url) {
 const builtins = {
   html,
   morph,
-  term: {
-    getCWD () {
-      return cwd
-    },
-    setCWD
-  }
+  evalCommand,
+  getCWD () {
+    return cwd
+  },
+  setCWD
 }
