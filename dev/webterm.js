@@ -148,6 +148,12 @@ function onKeyDown (e) {
 
 
 
+function onKeyDown (e) {
+  if (e.code === 'KeyL' && e.ctrlKey) {
+    clearHistory()
+  }
+}
+
 function onPromptKeyUp (e) {
   if (e.code === 'Enter') {
     console.log('reached before')
