@@ -8,6 +8,40 @@ const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
 // globals
 // =
 
+var commandHist = {
+  array   : new Array(),
+  insert  : -1,
+  present : -1,
+  add     : function(element){
+    this.array[++this.insert]=element;
+    this.present = this.insert;
+  },
+  prevUp  : function(){
+    if(this.present===-1)
+      return ''
+    else if(this.array[this.present-1] === undefined){
+      this.present=0
+      return this.array[0]
+    }
+    else
+      return this.array[this.present--]
+   
+  },
+  prevDown : function(){
+    if(this.array[this.present+1] === undefined){
+      this.present=this.array.length-1
+      return ''
+    }
+    else
+      return this.array[++this.present]
+  },
+  reset    : function(){
+    this.present=this.insert
+  } 
+
+}
+
+
 var cwd // current working directory. {url:, host:, pathname:, archive:}
 var env // current working environment
 
@@ -23,6 +57,7 @@ const gt = () => {
 
 document.addEventListener('keydown', setFocus, {capture: true})
 document.addEventListener('keydown', onKeyDown, {capture: true})
+
 window.addEventListener('focus', setFocus)
 readCWD()
 updatePrompt()
@@ -84,6 +119,36 @@ function setFocus () {
 }
 
 function onKeyDown (e) {
+  var prompt = document.querySelector('.prompt input')
+
+  if (e.code === 'KeyL' && e.ctrlKey) {
+    clearHistory()
+  }
+  else if(e.code==='ArrowUp')
+  {
+    //console.log(hist)
+    e.preventDefault()
+    prompt.value=commandHist.prevUp()
+    console.log(commandHist)
+  }
+  else if(e.code==='ArrowDown')
+  {
+    e.preventDefault()
+    prompt.value=commandHist.prevDown()
+        console.log(commandHist)
+
+  }
+  else if(e.code === 'Escape')
+  {
+    prompt.value=''
+    commandHist.reset();
+    console.log(commandHist)
+  }
+}
+
+
+
+function onKeyDown (e) {
   if (e.code === 'KeyL' && e.ctrlKey) {
     clearHistory()
   }
@@ -91,6 +156,9 @@ function onKeyDown (e) {
 
 function onPromptKeyUp (e) {
   if (e.code === 'Enter') {
+    console.log('reached before')
+
+    console.log('after')
     evalPrompt()
   }
 }
@@ -99,7 +167,9 @@ function evalPrompt () {
   var prompt = document.querySelector('.prompt input')
   if (!prompt.value.trim()) {
     return
-  }
+  } 
+  commandHist.add(prompt.value)
+  console.log(commandHist)
   evalCommand(prompt.value)
   prompt.value = ''
 }
