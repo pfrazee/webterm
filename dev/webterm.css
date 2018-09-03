@@ -33,11 +33,12 @@ main {
 
 .output .error {
   white-space: normal;
+  color: red;
 }
 
 .output .error-stack {
   padding: 1rem;
-  background: #fafafa;
+  background: pink;
   font-weight: bold;
   font-size: 12px;
 }
