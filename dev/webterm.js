@@ -11,6 +11,30 @@ const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
 var cwd // current working directory. {url:, host:, pathname:, archive:}
 var env // current working environment
 
+var commandHist = {
+  array: new Array(),
+  insert: -1,
+  cursor: -1,
+  add (entry) {
+    if (entry) {
+      this.array.push(entry)
+    }
+    this.cursor = this.array.length
+  },
+  prevUp () {
+    if (this.cursor === -1) return ''
+    this.cursor = Math.max(0, this.cursor - 1)
+    return this.array[this.cursor]
+  },
+  prevDown () {
+    this.cursor = Math.min(this.array.length, this.cursor + 1)
+    return this.array[this.cursor] || ''
+  },
+  reset () {
+    this.cursor = this.array.length
+  }
+ }
+
 // helper elem
 const gt = () => {
   var el = html`<span></span>`
@@ -85,7 +109,18 @@ function setFocus () {
 
 function onKeyDown (e) {
   if (e.code === 'KeyL' && e.ctrlKey) {
+    e.preventDefault()
     clearHistory()
+  } else if (e.code === 'ArrowUp') {
+    e.preventDefault()
+    document.querySelector('.prompt input').value = commandHist.prevUp()
+  } else if (e.code === 'ArrowDown') {
+    e.preventDefault()
+    document.querySelector('.prompt input').value = commandHist.prevDown()
+  } else if (e.code === 'Escape') {
+    e.preventDefault()
+    document.querySelector('.prompt input').value = ''
+    commandHist.reset()
   }
 }
 
@@ -100,6 +135,7 @@ function evalPrompt () {
   if (!prompt.value.trim()) {
     return
   }
+  commandHist.add(prompt.value)
   evalCommand(prompt.value)
   prompt.value = ''
 }
