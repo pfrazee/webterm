@@ -44,10 +44,20 @@ export async function ls (opts = {}, location = '') {
   // read
   var listing = await cwd.archive.readdir(location, {stat: true})
 
+  // add link to parent directory
+  if (cwd.pathname !== '/') {
+    listing.unshift({
+      name: '..',
+      stat: await cwd.archive.stat(joinPath(cwd.pathname), '..')
+    })
+  }
+
   // render
   listing.toHTML = () => listing
     .filter(entry => {
-      if (opts.all || opts.a) return true
+      if (entry.name === '..' || opts.all || opts.a) {
+        return true
+      }
       return entry.name.startsWith('.') === false
     })
     .sort((a, b) => {
