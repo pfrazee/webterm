@@ -50,7 +50,7 @@ Here is a minimal hello world example:
 
 ```js
 // hello-world.js
-function main () {
+export default function () {
   return 'Hello, world!'
 }
 ```
@@ -66,7 +66,7 @@ Hello, world!
 
 **Arguments**
 
-All command scripts define a main() which accepts an options object and positional arguments, and returns a JS value or object. Here's an example which echos the arguments:
+All command modules export a default function which accepts an options object and positional arguments, and returns a JS value or object. Here's an example which echos the arguments:
 
 ```js
 // echo.js
@@ -84,13 +84,31 @@ Invocation:
 
 ---
 
+**Subcommands**
+
+All non-default exports on a command module can be accessed as subcommands. This is a help function for the above `echo` example:
+
+```js
+// echo.js
+export function help () {
+  return 'echo <opts> [...args]'
+}
+```
+
+Invocation:
+
+```bash
+> echo help
+echo <opts> [...args]
+```
+
 **Globals**
 
 A `globals` object provides information about the environment.
 
 ```js
 // pwd.js
-function main () {
+export default function () {
   return globals.cwd
 }
 ```
@@ -108,7 +126,7 @@ The command may specify a `toHTML` function on the response object. This method 
 
 ```js
 // hello-big-world.js
-function main () {
+export default function () {
   return {
     toHTML: () => '<h1>HELLO WORLD!</h1>'
   }
@@ -125,7 +143,7 @@ Commands can be composed by sub-invocations. Sub-invocations are command-invocat
 
 ```js
 // change-case.js
-function main (opts, str) {
+export default function (opts, str) {
   str = str.toString()
   if (opts.u) return str.toUpperCase()
   if (opts.l) return str.toLowerCase()
@@ -143,7 +161,7 @@ This can be used multiple times in an invocation, and nested arbitrarily:
 
 ```js
 // concat.js
-function main (opts, left, right) {
+export default function (opts, left, right) {
   return left.toString() + ' ' + right.toString()
 }
 ```
@@ -169,7 +187,7 @@ Commands may be async.
 
 ```js
 // wait1s.js
-async function main (opts) {
+export default async function (opts) {
   await new Promise(resolve => setTimeout(resolve, 1e3))
 }
 ```
@@ -182,7 +200,7 @@ Commands may use the `terminal` API to provide interactivity during their invoca
 
 ```js
 // new-profile.js
-async function main () {
+export default async function () {
   var name = await terminal.prompt('What is your name?')
   var bio = await terminal.prompt('What is your bio?')
   terminal.output(`You are ${name}. Bio: ${bio}`)

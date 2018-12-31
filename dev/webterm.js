@@ -140,40 +140,40 @@ function evalPrompt () {
   prompt.value = ''
 }
 
-function evalCommand (command) {
-  evalCommandInternal(command, appendOutput, appendError, env, parseCommand, updatePrompt)  
-}
-
-// use the func constructor to relax 'use strict'
-// that way we can use `with`
-var evalCommandInternal = new AsyncFunction('command', 'appendOutput', 'appendError', 'env', 'parseCommand', 'updatePrompt', `
+async function evalCommand (command) {
   try {
-    var res
+    var js, module
     var oldCWD = Object.assign({}, env.getCWD())
-    with (env) {
-      res = await eval(parseCommand(command))
+    var {cmd, args, opts} = parseCommand(command)
+
+    if (cmd in env) {
+      cmd = `env.${cmd}`
+    } else {
+      module = await importModule(joinPath(env.pwd(), `${cmd}.js`))
+      cmd = `module.${module[args[0]] ? args.shift() : 'default'}`
     }
+
+    args.unshift(opts) // opts always go first
+    js = `${cmd}(${args.map(JSON.stringify).join(', ')})`
+    console.log(js)
+
+    var res = await eval(js)
     appendOutput(res, oldCWD, command)
   } catch (err) {
     appendError('Command error', err, oldCWD, command)
   }
   updatePrompt()
-`)
+}
 
 function parseCommand (str) {
-  // parse the command
   var parts = str.split(' ')
-  var cmd = parts[0]
-  var argsParsed = minimist(parts.slice(1))
-  console.log(JSON.stringify(argsParsed))
+  var cmd = parts.shift()
 
-  // form the js call
-  var args = argsParsed._
-  delete argsParsed._
-  args.unshift(argsParsed) // opts always go first
+  var opts = minimist(parts)
+  var args = opts._
+  delete opts._
 
-  console.log(`${cmd}(${args.map(JSON.stringify).join(', ')})`)
-  return `${cmd}(${args.map(JSON.stringify).join(', ')})`
+  return {cmd, args, opts}
 }
 
 // environment
